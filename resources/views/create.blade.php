@@ -51,13 +51,13 @@
         <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
             <div class="flex items-center gap-2 mb-2">
                 <input type="text" readonly class="short-url-input w-full px-3 py-2 bg-white border border-gray-300 rounded-lg">
-                <button onclick="copyToClipboard(this)" class="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-200">
+                <button onclick="copyToClipboard(this)"
+                        class="copy-btn px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-all duration-200">
                     複製
                 </button>
             </div>
             <div class="text-sm text-gray-600">
                 <p class="original-url truncate"></p>
-                <!-- 在 url-item-template 中的 original-url 後面添加 -->
                 <div class="mt-2 bg-yellow-50 p-3 rounded-lg">
                     <p class="text-sm text-yellow-800 mb-2">請保存此刪除連結：</p>
                     <div class="flex items-center gap-2">
@@ -136,23 +136,51 @@
         }
       });
 
-      function copyToClipboard(button) {
+      // 修改 copyToClipboard 函數
+      async function copyToClipboard(button) {
         const input = button.parentElement.querySelector('input');
-        input.select();
+        const textToCopy = input.value;
 
         try {
-          navigator.clipboard.writeText(input.value).then(() => {
+          // 使用新的 Clipboard API
+          await navigator.clipboard.writeText(textToCopy);
+
+          // 視覺反饋
+          const originalText = button.textContent;
+          const originalBg = button.className;
+
+          button.textContent = '已複製！';
+          button.className = `${originalBg} bg-green-500 text-white`;
+
+          setTimeout(() => {
+            button.textContent = originalText;
+            button.className = originalBg;
+          }, 2000);
+        } catch (err) {
+          // 如果 Clipboard API 失敗，使用傳統方法
+          try {
+            input.select();
+            input.setSelectionRange(0, 99999); // For mobile devices
+            document.execCommand('copy');
+
+            // 取消選取
+            window.getSelection().removeAllRanges();
+
+            // 視覺反饋
             const originalText = button.textContent;
+            const originalBg = button.className;
+
             button.textContent = '已複製！';
-            button.classList.add('bg-green-200');
+            button.className = `${originalBg} bg-green-500 text-white`;
 
             setTimeout(() => {
               button.textContent = originalText;
-              button.classList.remove('bg-green-200');
+              button.className = originalBg;
             }, 2000);
-          });
-        } catch (err) {
-          console.error('複製失敗:', err);
+          } catch (err) {
+            console.error('複製失敗:', err);
+            alert('複製失敗，請手動複製');
+          }
         }
       }
     </script>
