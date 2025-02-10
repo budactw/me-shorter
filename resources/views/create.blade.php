@@ -6,13 +6,27 @@
             @csrf
 
             <!-- 原始網址輸入框 -->
-            <div>
+            <!-- 輸入和貼上按鈕區塊 -->
+            <div class="space-y-2">
+                <!-- 輸入框 -->
                 <input type="url"
                        name="original_url"
                        id="original_url"
                        placeholder="請輸入原始網址"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-base"
                        required>
+
+                <!-- 貼上按鈕 - 只在手機版顯示 -->
+                <button type="button"
+                        id="pasteButton"
+                        class="hidden md:hidden w-full flex items-center justify-center gap-2 py-3 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-lg transition text-base font-medium"
+                        onclick="pasteUrl()">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    從剪貼簿貼上
+                </button>
             </div>
 
             <!-- 是否設定有效期限 -->
@@ -112,6 +126,16 @@
         const expiryField = document.getElementById('expiry_field');
         expiryField.classList.toggle('hidden', !this.checked);
         if (!this.checked) document.getElementById('expired_at').value = null;
+      });
+
+      // 頁面載入時檢查是否為手機
+      document.addEventListener('DOMContentLoaded', function() {
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const pasteButton = document.getElementById('pasteButton');
+
+        if (isMobile) {
+          pasteButton.classList.remove('hidden');
+        }
       });
 
       // 表單提交邏輯
@@ -237,5 +261,80 @@
           alert('您的瀏覽器不支援分享功能');
         }
       }
+
+      // 貼上功能
+      async function pasteUrl() {
+        const urlInput = document.getElementById('original_url');
+        const pasteButton = document.getElementById('pasteButton');
+
+        try {
+          // 優先使用 navigator.share API
+          if (navigator.clipboard && navigator.clipboard.readText) {
+            const text = await navigator.clipboard.readText();
+            urlInput.value = text;
+            showPasteSuccess();
+          } else {
+            // 回退方案：請求剪貼簿權限
+            const permissionResult = await navigator.permissions.query({
+              name: 'clipboard-read'
+            });
+
+            if (permissionResult.state === 'granted' || permissionResult.state === 'prompt') {
+              const text = await navigator.clipboard.readText();
+              urlInput.value = text;
+              showPasteSuccess();
+            } else {
+              throw new Error('需要剪貼簿存取權限');
+            }
+          }
+        } catch (err) {
+          console.error('貼上失敗:', err);
+
+          // 顯示錯誤提示
+          const originalText = pasteButton.innerHTML;
+          pasteButton.innerHTML = `
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    請手動貼上網址
+                `;
+          pasteButton.classList.add('bg-red-100', 'text-red-700');
+
+          setTimeout(() => {
+            pasteButton.innerHTML = originalText;
+            pasteButton.classList.remove('bg-red-100', 'text-red-700');
+          }, 3000);
+        }
+      }
+
+      // 顯示貼上成功的視覺反饋
+      function showPasteSuccess() {
+        const pasteButton = document.getElementById('pasteButton');
+        const originalText = pasteButton.innerHTML;
+
+        pasteButton.innerHTML = `
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M5 13l4 4L19 7"/>
+                </svg>
+                已貼上
+            `;
+        pasteButton.classList.add('bg-green-100', 'text-green-700');
+
+        setTimeout(() => {
+          pasteButton.innerHTML = originalText;
+          pasteButton.classList.remove('bg-green-100', 'text-green-700');
+        }, 2000);
+      }
+
+      // 監聽輸入框的點擊事件
+      document.getElementById('original_url').addEventListener('click', function() {
+        // 在移動設備上，點擊輸入框時自動觸發貼上功能
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+          pasteUrl();
+        }
+      });
+
     </script>
 @endsection
