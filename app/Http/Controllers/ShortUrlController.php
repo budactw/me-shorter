@@ -64,11 +64,13 @@ class ShortUrlController extends Controller
             });
 
             return response()->json([
-                'success'      => true,
-                'shortUrl'     => $shortUrl,
-                'fullShortUrl' => url($shortUrl->short_code),
-                'deleteUrl'    => url('delete', $shortUrl->delete_code),
-                'message'      => '短網址已成功生成',
+                'success'          => true,
+                'shortUrl'         => $shortUrl,
+                'fullShortUrl'     => url($shortUrl->short_code),
+                'fullChineseShortUrl'   => config('app.chinese_url') . $shortUrl->short_code,
+                'deleteUrl'        => url('delete', $shortUrl->delete_code),
+                'deleteChineseUrl' => config('app.chinese_url') . 'delete/' . $shortUrl->delete_code,
+                'message'          => '短網址已成功生成',
             ]);
 
         } catch (\Exception $e) {
@@ -89,7 +91,7 @@ class ShortUrlController extends Controller
         if (!$shortUrl) {
             return response()->json([
                 'success' => false,
-                'message' => '無效的刪除碼或短網址已被刪除'
+                'message' => '無效的刪除碼或短網址已被刪除',
             ], 404);
         }
 
@@ -98,12 +100,12 @@ class ShortUrlController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => '短網址已成功刪除'
+                'message' => '短網址已成功刪除',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => '刪除失敗，請稍後再試'
+                'message' => '刪除失敗，請稍後再試',
             ], 500);
         }
     }
@@ -116,8 +118,8 @@ class ShortUrlController extends Controller
         $shortUrl = ShortUrl::where('delete_code', $deleteCode)->firstOrFail();
 
         return view('delete', [
-            'shortUrl' => $shortUrl,
-            'deleteCode' => $deleteCode
+            'shortUrl'   => $shortUrl,
+            'deleteCode' => $deleteCode,
         ]);
     }
 
@@ -126,12 +128,12 @@ class ShortUrlController extends Controller
      */
     private function isSelfUrl($url)
     {
-        $appUrl = config('app.url');
         // 移除 protocol (http:// 或 https://) 再比較
-        $normalizedAppUrl = preg_replace('#^https?://#', '', $appUrl);
+        $normalizedAppUrl = preg_replace('#^https?://#', '', config('app.url'));
+        $normalizedAppChineseUrl = preg_replace('#^https?://#', '', config('app.chinese_url'));
         $normalizedUrl = preg_replace('#^https?://#', '', $url);
 
-        return Str::startsWith($normalizedUrl, $normalizedAppUrl);
+        return Str::startsWith($normalizedUrl, [$normalizedAppUrl, $normalizedAppChineseUrl]);
     }
 
 }

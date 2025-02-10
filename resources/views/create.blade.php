@@ -144,15 +144,14 @@
             const template = document.getElementById('url-item-template');
             const clone = template.content.cloneNode(true);
 
-            clone.querySelector('.short-url-input').value = data.fullShortUrl;
+            clone.querySelector('.short-url-input').value = data.fullChineseShortUrl;
             clone.querySelector('.original-url').textContent = `原始網址: ${data.shortUrl.original_url}`;
             clone.querySelector('.created-at').textContent = `創建時間: ${new Date().toLocaleString()}`;
             if (data.shortUrl.expired_at) {
               clone.querySelector('.expired-at').textContent = `過期時間: ${new Date(data.shortUrl.expired_at).toLocaleString()}`;
             }
 
-            // 添加 deleteUrl 屬性到刪除按鈕和輸入框
-            clone.querySelector('.delete-url-input').value = data.deleteUrl;
+            clone.querySelector('.delete-url-input').value = data.deleteChineseUrl;
 
             document.getElementById('url-list').prepend(clone);
             form.reset();

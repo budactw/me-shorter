@@ -54,6 +54,8 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    'chinese_url' => env('APP_CHINESE_URL', 'http://localhost/'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone
