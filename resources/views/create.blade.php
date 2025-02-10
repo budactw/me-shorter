@@ -19,7 +19,7 @@
                 <!-- 貼上按鈕 - 只在手機版顯示 -->
                 <button type="button"
                         id="pasteButton"
-                        class="hidden md:hidden w-full flex items-center justify-center gap-2 py-3 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-lg transition text-base font-medium"
+                        class="hidden md:hidden w-full flex items-center justify-center gap-2 py-3 mt-3 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-lg transition text-base font-medium"
                         onclick="pasteUrl()">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -268,44 +268,113 @@
         const pasteButton = document.getElementById('pasteButton');
 
         try {
-          // 優先使用 navigator.share API
-          if (navigator.clipboard && navigator.clipboard.readText) {
+          // 先檢查權限狀態
+          const permissionStatus = await checkClipboardPermission();
+
+          if (permissionStatus === 'granted') {
+            // 已有權限，直接讀取剪貼簿
             const text = await navigator.clipboard.readText();
             urlInput.value = text;
             showPasteSuccess();
+          } else if (permissionStatus === 'prompt') {
+            // 需要請求權限
+            showPermissionRequest();
           } else {
-            // 回退方案：請求剪貼簿權限
-            const permissionResult = await navigator.permissions.query({
-              name: 'clipboard-read'
-            });
-
-            if (permissionResult.state === 'granted' || permissionResult.state === 'prompt') {
-              const text = await navigator.clipboard.readText();
-              urlInput.value = text;
-              showPasteSuccess();
-            } else {
-              throw new Error('需要剪貼簿存取權限');
-            }
+            // 權限被拒絕
+            showPermissionDenied();
           }
         } catch (err) {
           console.error('貼上失敗:', err);
-
-          // 顯示錯誤提示
-          const originalText = pasteButton.innerHTML;
-          pasteButton.innerHTML = `
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    請手動貼上網址
-                `;
-          pasteButton.classList.add('bg-red-100', 'text-red-700');
-
-          setTimeout(() => {
-            pasteButton.innerHTML = originalText;
-            pasteButton.classList.remove('bg-red-100', 'text-red-700');
-          }, 3000);
+          showPasteError();
         }
+      }
+
+      async function checkClipboardPermission() {
+        try {
+          const permissionResult = await navigator.permissions.query({
+            name: 'clipboard-read'
+          });
+          return permissionResult.state; // 'granted', 'denied', 或 'prompt'
+        } catch (err) {
+          // 如果瀏覽器不支援權限查詢，假設需要請求權限
+          return 'prompt';
+        }
+      }
+
+      // 顯示權限請求對話框
+      function showPermissionRequest() {
+        const pasteButton = document.getElementById('pasteButton');
+
+        // 更新按鈕狀態
+        pasteButton.innerHTML = `
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        點擊允許存取剪貼簿
+    `;
+        pasteButton.classList.add('bg-blue-100', 'text-blue-700');
+
+        // 添加一次性點擊事件
+        pasteButton.onclick = async () => {
+          try {
+            const text = await navigator.clipboard.readText();
+            document.getElementById('original_url').value = text;
+            showPasteSuccess();
+          } catch (err) {
+            showPermissionDenied();
+          }
+          // 恢復原始點擊事件
+          pasteButton.onclick = pasteUrl;
+        };
+      }
+
+      // 顯示權限被拒絕的提示
+      function showPermissionDenied() {
+        const pasteButton = document.getElementById('pasteButton');
+
+        pasteButton.innerHTML = `
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        請在瀏覽器設定中允許存取剪貼簿
+    `;
+        pasteButton.classList.add('bg-red-100', 'text-red-700');
+
+        setTimeout(() => {
+          resetPasteButton(pasteButton);
+        }, 3000);
+      }
+
+      // 顯示貼上錯誤
+      function showPasteError() {
+        const pasteButton = document.getElementById('pasteButton');
+
+        pasteButton.innerHTML = `
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        請手動貼上網址
+    `;
+        pasteButton.classList.add('bg-red-100', 'text-red-700');
+
+        setTimeout(() => {
+          resetPasteButton(pasteButton);
+        }, 3000);
+      }
+
+      // 重置貼上按鈕狀態
+      function resetPasteButton(button) {
+        button.innerHTML = `
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+        從剪貼簿貼上
+    `;
+        button.classList.remove('bg-red-100', 'text-red-700', 'bg-blue-100', 'text-blue-700');
       }
 
       // 顯示貼上成功的視覺反饋
