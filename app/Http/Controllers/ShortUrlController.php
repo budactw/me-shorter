@@ -58,7 +58,7 @@ class ShortUrlController extends Controller
                     'original_url' => $validated['original_url'],
                     'short_code'   => $shortCode,
                     'delete_code'  => ShortUrlMaker::generate(20),
-                    'expired_at'   => $validated['expired_at'] ?? null,
+                    'expired_at'   => $validated['expired_at'] ? Carbon::parse($validated['expired_at'])->endOfDay() : null,
                     'clicks'       => 0,
                 ]);
             });
